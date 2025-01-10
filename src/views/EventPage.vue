@@ -3,12 +3,21 @@
     <h1>📋 Events for {{ formattedDate }}</h1>
     <ul class="event-list">
       <li v-for="(event, index) in events" :key="index">
-        <span class="event-item">{{ event }}</span>
+        <div class="event-details">
+          <span class="importance" :class="importanceClass(event.importance)">{{ importanceSymbols(event.importance) }}</span>
+          <strong>{{ event.name }}</strong> - {{ event.description }}
+        </div>
         <button class="delete-button" @click="deleteEvent(index)">Delete</button>
       </li>
     </ul>
     <div class="event-controls">
-      <input v-model="newEvent" placeholder="Add new event" />
+      <input v-model="newEventName" placeholder="Event name" />
+      <input v-model="newEventDescription" placeholder="Event description" />
+      <select v-model="newEventImportance">
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+      </select>
       <button @click="addNewEvent">Add Event</button>
       <button @click="goBack">Back to Date Selection</button>
     </div>
@@ -44,10 +53,21 @@ export default {
       fetchEvents();
     });
 
+    const newEventName = ref('');
+    const newEventDescription = ref('');
+    const newEventImportance = ref('Low');
+
     const addNewEvent = () => {
-      if (newEvent.value.trim()) {
-        store.addEvent(props.date, newEvent.value);
-        newEvent.value = '';
+      if (newEventName.value.trim() && newEventDescription.value.trim()) {
+        const newEvent = {
+          name: newEventName.value,
+          description: newEventDescription.value,
+          importance: newEventImportance.value,
+        };
+        store.addEvent(props.date, newEvent);
+        newEventName.value = '';
+        newEventDescription.value = '';
+        newEventImportance.value = 'Low';
         fetchEvents();
       }
     };
@@ -57,14 +77,40 @@ export default {
       fetchEvents();
     };
 
-    const newEvent = ref('');
-
     const formattedDate = computed(() => {
       const [year, month, day] = props.date.split('-');
-      return `${day}/${month}/${year}`;
+      return `${day}.${month}.${year}`;
     });
 
-    return { events, newEvent, addNewEvent, deleteEvent, formattedDate, router };
+    const importanceSymbols = (importance) => {
+      switch (importance) {
+        case 'Low':
+          return '!';
+        case 'Medium':
+          return '!!';
+        case 'High':
+          return '!!!';
+        default:
+          return '';
+      }
+    };
+
+    const importanceClass = (importance) => {
+      return 'importance-' + importance.toLowerCase();
+    };
+
+    return {
+      events,
+      newEventName,
+      newEventDescription,
+      newEventImportance,
+      addNewEvent,
+      deleteEvent,
+      formattedDate,
+      importanceSymbols,
+      importanceClass,
+      router,
+    };
   },
   methods: {
     goBack() {
@@ -96,8 +142,21 @@ export default {
   justify-content: space-between;
   align-items: center;
 }
-.event-item {
+.event-details {
   flex: 1;
+}
+.importance {
+  font-weight: bold;
+  margin-left: 10px;
+}
+.importance-low {
+  color: #4caf50;
+}
+.importance-medium {
+  color: #ff9800;
+}
+.importance-high {
+  color: #f44336;
 }
 .delete-button {
   padding: 5px 10px;
@@ -113,9 +172,10 @@ export default {
 .event-controls {
   margin-top: 20px;
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
-input {
+input, select {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
